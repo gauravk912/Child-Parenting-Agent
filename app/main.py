@@ -9,7 +9,7 @@ setup_logging()
 app = FastAPI(
     title=settings.app_name,
     version=APP_VERSION,
-    description="GuardianGraph backend for trauma-informed parenting support"
+    description="TinyTriggers backend for trauma-informed parenting support"
 )
 
 app.include_router(health_router)
@@ -18,7 +18,7 @@ app.include_router(health_router)
 @app.get("/")
 def root():
     return {
-        "message": "GuardianGraph backend is running",
+        "message": "TinyTriggers backend is running",
         "environment": settings.app_env,
         "version": APP_VERSION
     }
