@@ -1,5 +1,11 @@
-from app.core.config import settings
+from collections.abc import Generator
+
+from app.db.session import SessionLocal
 
 
-def get_settings():
-    return settings
+def get_db() -> Generator:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

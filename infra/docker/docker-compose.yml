@@ -1,19 +1,6 @@
 version: "3.9"
 
 services:
-  db:
-    image: postgres:15
-    container_name: tinytriggers_postgres
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    ports:
-      - "54322:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   neo4j:
     image: neo4j:5
     container_name: tinytriggers_neo4j
@@ -36,6 +23,5 @@ services:
       - redis_data:/data
 
 volumes:
-  postgres_data:
   neo4j_data:
   redis_data:
