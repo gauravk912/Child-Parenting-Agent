@@ -1,4 +1,5 @@
 from uuid import UUID
+from collections import Counter
 from typing import List,Dict, Optional
 from app.db.neo4j import get_neo4j_driver
 
@@ -112,7 +113,7 @@ def create_incident_memory_node(
 
 def get_similar_incidents_for_child(
     child_id: UUID,
-    limit: int = 5,
+    limit: int = 8,
 ) -> List[Dict]:
     driver = get_neo4j_driver()
 
@@ -126,7 +127,6 @@ def get_similar_incidents_for_child(
         i.consequence AS consequence,
         i.location AS location,
         collect(DISTINCT iv.name) AS interventions
-    ORDER BY incident_id DESC
     LIMIT $limit
     """
 
@@ -151,14 +151,14 @@ def get_similar_incidents_for_child(
 
 def get_prior_helpful_interventions_for_child(
     child_id: UUID,
-    limit: int = 5,
+    limit: int = 8,
 ) -> List[str]:
     driver = get_neo4j_driver()
 
     query = """
     MATCH (c:Child {id: $child_id})-[:HAD_INCIDENT]->(:Incident)-[:USED_INTERVENTION]->(iv:Intervention)
     RETURN iv.name AS intervention_name, count(*) AS use_count
-    ORDER BY use_count DESC
+    ORDER BY use_count DESC, intervention_name ASC
     LIMIT $limit
     """
 
@@ -174,27 +174,98 @@ def get_prior_helpful_interventions_for_child(
     return interventions
 
 
+def get_ranked_interventions_for_child(
+    child_id: UUID,
+    limit: int = 5,
+) -> List[Dict]:
+    driver = get_neo4j_driver()
+
+    query = """
+    MATCH (c:Child {id: $child_id})-[:HAD_INCIDENT]->(i:Incident)-[:USED_INTERVENTION]->(iv:Intervention)
+    RETURN iv.name AS intervention_name, count(*) AS use_count
+    ORDER BY use_count DESC, intervention_name ASC
+    LIMIT $limit
+    """
+
+    ranked = []
+    with driver.session() as session:
+        result = session.run(query, child_id=str(child_id), limit=limit)
+        for rank, record in enumerate(result, start=1):
+            name = record.get("intervention_name")
+            count = record.get("use_count") or 0
+            if name:
+                ranked.append(
+                    {
+                        "rank": rank,
+                        "intervention": name,
+                        "use_count": count,
+                    }
+                )
+
+    driver.close()
+    return ranked
+
+
+def get_recurring_contexts_for_child(
+    child_id: UUID,
+    limit: int = 5,
+) -> List[str]:
+    driver = get_neo4j_driver()
+
+    query = """
+    MATCH (c:Child {id: $child_id})-[:HAD_INCIDENT]->(i:Incident)
+    RETURN i.location AS location, i.antecedent AS antecedent
+    """
+
+    context_counter = Counter()
+
+    with driver.session() as session:
+        result = session.run(query, child_id=str(child_id))
+        for record in result:
+            location = (record.get("location") or "").strip()
+            antecedent = (record.get("antecedent") or "").strip()
+
+            if location:
+                context_counter[f"Location: {location}"] += 1
+
+            if antecedent:
+                lowered = antecedent.lower()
+                if "after school" in lowered:
+                    context_counter["After school transition"] += 1
+                if "crowded" in lowered:
+                    context_counter["Crowded environment"] += 1
+                if "loud" in lowered:
+                    context_counter["Loud environment"] += 1
+                if "store" in lowered:
+                    context_counter["Store/errand outing"] += 1
+
+    driver.close()
+    return [item for item, _ in context_counter.most_common(limit)]
+
+
 def build_memory_summary(
     similar_incidents: List[Dict],
     prior_helpful_interventions: List[str],
+    recurring_contexts: List[str],
 ) -> str:
-    if not similar_incidents and not prior_helpful_interventions:
+    if not similar_incidents and not prior_helpful_interventions and not recurring_contexts:
         return "No prior incident memory available."
 
-    summary_parts = []
+    parts = []
 
     if similar_incidents:
         first = similar_incidents[0]
-        summary_parts.append(
+        parts.append(
             "Recent similar incident memory: "
             f"antecedent={first.get('antecedent')}; "
             f"behavior={first.get('behavior')}; "
             f"consequence={first.get('consequence')}."
         )
 
-    if prior_helpful_interventions:
-        summary_parts.append(
-            "Previously used interventions: " + ", ".join(prior_helpful_interventions) + "."
-        )
+    if recurring_contexts:
+        parts.append("Recurring contexts: " + ", ".join(recurring_contexts) + ".")
 
-    return " ".join(summary_parts)
+    if prior_helpful_interventions:
+        parts.append("Previously used interventions: " + ", ".join(prior_helpful_interventions) + ".")
+
+    return " ".join(parts)

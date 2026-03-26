@@ -7,7 +7,12 @@ from app.core.dependencies import get_db, get_current_user
 from app.graph.builder import build_report_graph
 from app.models.child import Child
 from app.models.user import User
-from app.schemas.report import WeeklyReportRequest, WeeklyReportResponse
+from app.schemas.report import (
+    WeeklyReportRequest,
+    WeeklyReportResponse,
+    WeeklyReportTherapistSnippet,
+    ReportProvenance,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +58,25 @@ def generate_weekly_report(
             top_interventions=result.get("top_interventions", []),
             latest_risk_level=result.get("latest_risk_level"),
             average_risk_score=result.get("average_risk_score"),
+            therapist_note_snippets=[
+                WeeklyReportTherapistSnippet(**{
+                    "document_id": src.get("document_id"),
+                    "title": src.get("title"),
+                    "chunk_text": src.get("chunk_text"),
+                    "score": src.get("score", 0.0),
+                })
+                for src in result.get("therapist_note_snippets", [])
+            ],
             summary_text=result.get("summary_text", ""),
             next_week_recommendations=result.get("next_week_recommendations", []),
             confidence_note=result.get("confidence_note"),
+            provenance=ReportProvenance(
+                used_incident_history=result.get("used_incident_history", False),
+                used_prediction_history=result.get("used_prediction_history", False),
+                used_therapist_notes=result.get("used_therapist_notes", False),
+                used_llm_summary=result.get("used_llm_summary", False),
+                provenance_summary=result.get("report_provenance_summary"),
+            ),
         )
     except Exception as e:
         logger.exception("Weekly report generation failed for child_id=%s", payload.child_id)

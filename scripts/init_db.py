@@ -17,6 +17,7 @@ from app.models.incident import Incident  # noqa: F401
 from app.models.abc_record import ABCRecord  # noqa: F401
 from app.models.intervention import Intervention  # noqa: F401
 from app.models.prediction import Prediction  # noqa: F401
+from app.models.document import Document  # noqa: F401
 
 
 def main():

@@ -1,7 +1,6 @@
-from typing import List, Optional
-from uuid import UUID
 from datetime import datetime
-from typing_extensions import TypedDict
+from typing import List, Optional, TypedDict
+from uuid import UUID
 
 
 class CrisisGraphState(TypedDict, total=False):
@@ -28,11 +27,16 @@ class CrisisGraphState(TypedDict, total=False):
 
     similar_incidents: List[dict]
     prior_helpful_interventions: List[str]
+    ranked_interventions: List[dict]
+    recurring_contexts: List[str]
     memory_summary: Optional[str]
+
+    therapist_note_snippets: List[dict]
 
     used_child_profile: bool
     used_graph_memory: bool
     used_tavily_evidence: bool
+    used_therapist_notes: bool
     used_llm_generation: bool
     safety_guard_applied: bool
     provenance_summary: Optional[str]
@@ -62,7 +66,8 @@ class DebriefGraphState(TypedDict, total=False):
     missing_fields: List[str]
     follow_up_question: Optional[str]
     debrief_quality: str
-    
+
+
 class PredictionGraphState(TypedDict, total=False):
     child_id: UUID
     prediction_date: str
@@ -85,9 +90,12 @@ class PredictionGraphState(TypedDict, total=False):
     risk_factors: List[str]
     prevention_steps: List[str]
 
+    engineered_features: dict
+
     prediction_id: UUID
     created_at: datetime
-    
+
+
 class ReportGraphState(TypedDict, total=False):
     child_id: UUID
     days: int
@@ -103,5 +111,14 @@ class ReportGraphState(TypedDict, total=False):
     latest_risk_level: Optional[str]
     average_risk_score: Optional[float]
 
+    therapist_note_snippets: List[dict]
+
     summary_text: str
     next_week_recommendations: List[str]
+    confidence_note: Optional[str]
+
+    used_incident_history: bool
+    used_prediction_history: bool
+    used_therapist_notes: bool
+    used_llm_summary: bool
+    report_provenance_summary: Optional[str]

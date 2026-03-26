@@ -1,3 +1,4 @@
+
 from typing import Dict, List, Optional
 import logging
 
@@ -32,14 +33,9 @@ def _geocode_location(location_query: str) -> tuple[float, float, str]:
 
 
 def get_weather_context(location_query: Optional[str] = None) -> Dict:
-    """
-    Live weather context using OpenWeather Geocoding + Current Weather API.
-    Falls back gracefully if weather lookup fails.
-    """
     chosen_location = location_query or settings.default_weather_location
 
     if not settings.openweather_api_key:
-        logger.info("Weather API key missing; returning fallback weather context")
         return {
             "weather_summary": "Live weather unavailable. Using fallback weather context.",
             "weather_risk_factors": [
@@ -48,8 +44,6 @@ def get_weather_context(location_query: Optional[str] = None) -> Dict:
         }
 
     try:
-        logger.info("Fetching live weather context for location=%s", chosen_location)
-
         lat, lon, resolved_name = _geocode_location(chosen_location)
 
         url = "https://api.openweathermap.org/data/2.5/weather"
@@ -81,7 +75,6 @@ def get_weather_context(location_query: Optional[str] = None) -> Dict:
         )
 
         risk_factors: List[str] = []
-
         lowered = f"{weather_main} {weather_desc}".lower()
 
         if any(word in lowered for word in ["rain", "storm", "thunderstorm", "drizzle"]):
@@ -112,7 +105,7 @@ def get_weather_context(location_query: Optional[str] = None) -> Dict:
             "weather_risk_factors": risk_factors,
         }
 
-    except Exception as e:
+    except Exception:
         logger.exception("Live weather lookup failed for location=%s", chosen_location)
         return {
             "weather_summary": f"Live weather unavailable for {chosen_location}. Using fallback weather context.",

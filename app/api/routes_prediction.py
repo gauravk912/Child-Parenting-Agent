@@ -4,13 +4,22 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.dependencies import get_db, get_current_user
 from app.db.session import SessionLocal
 from app.graph.builder import build_prediction_graph
 from app.models.child import Child
 from app.models.user import User
-from app.schemas.prediction import DailyPredictionRequest, DailyPredictionResponse
+from app.schemas.prediction import (
+    DailyPredictionRequest,
+    DailyPredictionResponse,
+    PredictionProvenance,
+)
 from app.services.incident_service import create_daily_prediction
+from app.services.notification_service import (
+    build_high_risk_notification,
+    save_notification,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +68,21 @@ def generate_daily_prediction(
             prevention_steps=result.get("prevention_steps", []),
         )
 
+        notification_triggered = False
+        notification_message = None
+
+        if result.get("risk_score", 0.0) >= settings.notification_high_risk_threshold:
+            notification = build_high_risk_notification(
+                child_id=payload.child_id,
+                child_name=result.get("child_name") or child.name,
+                prediction_date=prediction_date,
+                risk_score=result.get("risk_score", 0.0),
+                prevention_steps=result.get("prevention_steps", []),
+            )
+            save_notification(notification)
+            notification_triggered = True
+            notification_message = notification["message"]
+
         logger.info(
             "Prediction generated successfully for child_id=%s prediction_id=%s",
             payload.child_id,
@@ -76,6 +100,17 @@ def generate_daily_prediction(
             calendar_summary=result.get("calendar_summary"),
             risk_factors=result.get("risk_factors", []),
             prevention_steps=result.get("prevention_steps", []),
+            engineered_features=result.get("engineered_features", {}),
+            notification_triggered=notification_triggered,
+            notification_message=notification_message,
+            provenance=PredictionProvenance(
+                used_child_profile=True,
+                used_weather_tool=True,
+                used_calendar_tool=True,
+                used_feature_engineering=True,
+                used_rule_based_risk_engine=True,
+                provenance_summary="Used child profile, weather tool, calendar tool, engineered features, and rule-based risk engine.",
+            ),
             created_at=prediction.created_at,
         )
     except Exception as e:

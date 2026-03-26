@@ -8,6 +8,13 @@ from app.models.abc_record import ABCRecord
 from app.models.intervention import Intervention
 from app.models.prediction import Prediction
 
+import json
+from datetime import datetime
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
+from app.models.prediction import Prediction
 
 def create_incident_with_abc(
     db: Session,
@@ -54,25 +61,25 @@ def create_incident_with_abc(
 
 
 def create_daily_prediction(
-    db,
-    child_id,
-    prediction_date,
-    risk_score,
-    risk_level,
-    weather_summary,
-    calendar_summary,
-    risk_factors,
-    prevention_steps,
-):
+    db: Session,
+    child_id: UUID,
+    prediction_date: str,
+    risk_score: float,
+    risk_level: str,
+    weather_summary: str | None,
+    calendar_summary: str | None,
+    risk_factors: list[str],
+    prevention_steps: list[str],
+) -> Prediction:
     prediction = Prediction(
         child_id=child_id,
-        prediction_date=prediction_date,
+        prediction_date=datetime.fromisoformat(prediction_date).date(),
         risk_score=risk_score,
         risk_level=risk_level,
         weather_summary=weather_summary,
         calendar_summary=calendar_summary,
-        risk_factors=" | ".join(risk_factors),
-        prevention_steps=" | ".join(prevention_steps),
+        risk_factors=json.dumps(risk_factors),
+        prevention_steps=json.dumps(prevention_steps),
     )
 
     db.add(prediction)

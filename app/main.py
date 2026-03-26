@@ -7,6 +7,8 @@ from app.api.routes_crisis import router as crisis_router
 from app.api.routes_debrief import router as debrief_router
 from app.api.routes_prediction import router as prediction_router
 from app.api.routes_reports import router as reports_router
+from app.api.routes_uploads import router as uploads_router
+from app.api.routes_notifications import router as notifications_router
 from app.core.config import settings
 from app.core.constants import APP_VERSION
 from app.core.logging import setup_logging
@@ -26,6 +28,8 @@ app.include_router(crisis_router)
 app.include_router(debrief_router)
 app.include_router(prediction_router)
 app.include_router(reports_router)
+app.include_router(uploads_router)
+app.include_router(notifications_router)
 
 
 @app.get("/")

@@ -1,21 +1,29 @@
-from langgraph.graph import START, END, StateGraph
+from langgraph.graph import StateGraph, START, END
 
-from app.graph.state import CrisisGraphState, DebriefGraphState, PredictionGraphState
+from app.graph.state import (
+    CrisisGraphState,
+    DebriefGraphState,
+    PredictionGraphState,
+    ReportGraphState,
+)
+
 from app.graph.nodes.context_fetch import context_fetch
 from app.graph.nodes.router import router
 from app.graph.nodes.intervention_planner import intervention_planner
+from app.graph.nodes.memory_retrieval import memory_retrieval
 from app.graph.nodes.evidence_search import evidence_search
 from app.graph.nodes.response_generator import response_generator
 from app.graph.nodes.safety_guard import safety_guard
+
 from app.graph.nodes.transcribe_audio import transcribe_audio
 from app.graph.nodes.abc_extractor import abc_extractor
 from app.graph.nodes.sql_persist import sql_persist
 from app.graph.nodes.graph_updater import graph_updater
+
 from app.graph.nodes.risk_model import risk_model
 from app.graph.nodes.prevention_planner import prevention_planner
-from app.graph.state import ReportGraphState
+
 from app.graph.nodes.report_generator import report_generator
-from app.graph.nodes.memory_retrieval import memory_retrieval
 
 
 def build_crisis_graph():
@@ -70,6 +78,7 @@ def build_prediction_graph():
 
     return graph.compile()
 
+
 def build_report_graph():
     graph = StateGraph(ReportGraphState)
 
@@ -79,4 +88,3 @@ def build_report_graph():
     graph.add_edge("report_generator", END)
 
     return graph.compile()
-

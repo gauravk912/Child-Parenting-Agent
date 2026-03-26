@@ -1,0 +1,10 @@
+{
+  "weather": {
+    "enabled": true,
+    "adapter": "app.mcp.adapters.weather_adapter"
+  },
+  "calendar": {
+    "enabled": true,
+    "adapter": "app.mcp.adapters.google_calendar_adapter"
+  }
+}

@@ -13,6 +13,8 @@ from app.schemas.crisis import (
     CrisisResponse,
     CrisisEvidenceSource,
     CrisisProvenance,
+    CrisisTherapistSnippet,
+    RankedIntervention,
 )
 
 logger = logging.getLogger(__name__)
@@ -59,12 +61,26 @@ def respond_to_crisis(
             evidence_sources=[
                 CrisisEvidenceSource(**src) for src in result.get("evidence_sources", [])
             ],
+            therapist_note_snippets=[
+                CrisisTherapistSnippet(**{
+                    "document_id": src.get("document_id"),
+                    "title": src.get("title"),
+                    "chunk_text": src.get("chunk_text"),
+                    "score": src.get("score", 0.0),
+                })
+                for src in result.get("therapist_note_snippets", [])
+            ],
             memory_summary=result.get("memory_summary"),
+            recurring_contexts=result.get("recurring_contexts", []),
             prior_helpful_interventions=result.get("prior_helpful_interventions", []),
+            ranked_interventions=[
+                RankedIntervention(**item) for item in result.get("ranked_interventions", [])
+            ],
             provenance=CrisisProvenance(
                 used_child_profile=result.get("used_child_profile", False),
                 used_graph_memory=result.get("used_graph_memory", False),
                 used_tavily_evidence=result.get("used_tavily_evidence", False),
+                used_therapist_notes=result.get("used_therapist_notes", False),
                 used_llm_generation=result.get("used_llm_generation", False),
                 safety_guard_applied=result.get("safety_guard_applied", False),
                 provenance_summary=result.get("provenance_summary"),

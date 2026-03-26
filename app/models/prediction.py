@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, String, Text, func
+from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -13,12 +13,13 @@ class Prediction(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     child_id = Column(UUID(as_uuid=True), ForeignKey("children.id"), nullable=False, index=True)
 
-    prediction_date = Column(String, nullable=False, index=True)
+    prediction_date = Column(Date, nullable=False, index=True)
     risk_score = Column(Float, nullable=False)
     risk_level = Column(String, nullable=False)
 
     weather_summary = Column(Text, nullable=True)
     calendar_summary = Column(Text, nullable=True)
+
     risk_factors = Column(Text, nullable=True)
     prevention_steps = Column(Text, nullable=True)
 
