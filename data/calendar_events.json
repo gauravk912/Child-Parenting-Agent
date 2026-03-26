@@ -1,0 +1,45 @@
+[
+  {
+    "title": "School Drop-off",
+    "start": "2026-03-24T08:00:00-04:00",
+    "end": "2026-03-24T08:30:00-04:00",
+    "category": "school"
+  },
+  {
+    "title": "Speech Therapy",
+    "start": "2026-03-24T15:30:00-04:00",
+    "end": "2026-03-24T16:15:00-04:00",
+    "category": "therapy"
+  },
+  {
+    "title": "Grocery Store Errand",
+    "start": "2026-03-24T17:30:00-04:00",
+    "end": "2026-03-24T18:15:00-04:00",
+    "category": "errand"
+  },
+  {
+    "title": "Evening Wind-down Routine",
+    "start": "2026-03-24T19:30:00-04:00",
+    "end": "2026-03-24T20:00:00-04:00",
+    "category": "routine"
+  },
+
+  {
+    "title": "School Drop-off",
+    "start": "2026-03-25T08:00:00-04:00",
+    "end": "2026-03-25T08:30:00-04:00",
+    "category": "school"
+  },
+  {
+    "title": "Pediatrician Appointment",
+    "start": "2026-03-25T14:00:00-04:00",
+    "end": "2026-03-25T14:45:00-04:00",
+    "category": "appointment"
+  },
+  {
+    "title": "Visit Grandparents",
+    "start": "2026-03-25T18:00:00-04:00",
+    "end": "2026-03-25T20:00:00-04:00",
+    "category": "visit"
+  }
+]

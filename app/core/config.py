@@ -26,6 +26,30 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
+    # Auth
+    auth_secret_key: str = "change-me-in-env"
+    auth_algorithm: str = "HS256"
+    auth_access_token_expire_minutes: int = 60
+    
+    # OpenAI + Travily
+    openai_api_key: str = ""
+    openai_model: str = "gpt-5.4-mini"
+    tavily_api_key: str = ""
+    enable_live_evidence_search: bool = True
+    
+    # Weather
+    openweather_api_key: str = ""
+    default_weather_location: str = "Columbus,OH,US"
+    weather_units: str = "imperial"
+    
+    # Google Calendar
+    google_calendar_credentials_file: str = "credentials.json"
+    google_calendar_token_file: str = "token.json"
+    google_calendar_id: str = "primary"
+    
+    # Temp Local calendar file
+    local_calendar_data_file: str = "data/calendar_events.json"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

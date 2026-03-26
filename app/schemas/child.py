@@ -17,7 +17,8 @@ class ChildBase(BaseModel):
 
 
 class ChildCreate(ChildBase):
-    parent_id: UUID
+    # parent_id: UUID
+    pass
 
 
 class ChildUpdate(BaseModel):

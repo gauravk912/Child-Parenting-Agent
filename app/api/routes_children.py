@@ -3,8 +3,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db
+from app.core.dependencies import get_db, get_current_user
 from app.models.child import Child
+from app.models.user import User
 from app.schemas.child import ChildCreate, ChildResponse, ChildUpdate
 from app.services.graph_memory_service import (
     create_child_profile_node,
@@ -16,8 +17,15 @@ router = APIRouter(prefix="/children", tags=["children"])
 
 
 @router.post("", response_model=ChildResponse, status_code=status.HTTP_201_CREATED)
-def create_child(payload: ChildCreate, db: Session = Depends(get_db)):
-    child = Child(**payload.model_dump())
+def create_child(
+    payload: ChildCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    child = Child(
+        **payload.model_dump(),
+        parent_id=current_user.id,
+    )
     db.add(child)
     db.commit()
     db.refresh(child)
@@ -32,21 +40,41 @@ def create_child(payload: ChildCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/{child_id}", response_model=ChildResponse)
-def get_child(child_id: UUID, db: Session = Depends(get_db)):
-    child = db.query(Child).filter(Child.id == child_id).first()
+def get_child(
+    child_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    child = (
+        db.query(Child)
+        .filter(Child.id == child_id, Child.parent_id == current_user.id)
+        .first()
+    )
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
     return child
 
 
 @router.get("", response_model=list[ChildResponse])
-def list_children(db: Session = Depends(get_db)):
-    return db.query(Child).all()
+def list_children(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return db.query(Child).filter(Child.parent_id == current_user.id).all()
 
 
 @router.put("/{child_id}", response_model=ChildResponse)
-def update_child(child_id: UUID, payload: ChildUpdate, db: Session = Depends(get_db)):
-    child = db.query(Child).filter(Child.id == child_id).first()
+def update_child(
+    child_id: UUID,
+    payload: ChildUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    child = (
+        db.query(Child)
+        .filter(Child.id == child_id, Child.parent_id == current_user.id)
+        .first()
+    )
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
 
@@ -66,8 +94,16 @@ def update_child(child_id: UUID, payload: ChildUpdate, db: Session = Depends(get
 
 
 @router.delete("/{child_id}")
-def delete_child(child_id: UUID, db: Session = Depends(get_db)):
-    child = db.query(Child).filter(Child.id == child_id).first()
+def delete_child(
+    child_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    child = (
+        db.query(Child)
+        .filter(Child.id == child_id, Child.parent_id == current_user.id)
+        .first()
+    )
     if not child:
         raise HTTPException(status_code=404, detail="Child not found")
 
