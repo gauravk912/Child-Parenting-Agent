@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 class DebriefRequest(BaseModel):
     child_id: UUID
-    parent_summary: str = Field(..., min_length=5, max_length=4000, description="Parent's debrief summary after the incident")
+    parent_summary: str = Field(..., min_length=5, max_length=4000)
     transcript_text: Optional[str] = Field(default=None)
     location: Optional[str] = Field(default=None, max_length=200)
     interventions_tried: List[str] = Field(default_factory=list)
@@ -35,6 +35,9 @@ class DebriefResponse(BaseModel):
     normalization_source: Optional[str] = None
     normalization_confidence: Optional[float] = None
     normalization_reasoning: Optional[str] = None
+
+    debrief_overall_confidence: Optional[float] = None
+    debrief_confidence_note: Optional[str] = None
 
     interventions_tried: List[str] = Field(default_factory=list)
     parent_summary: str

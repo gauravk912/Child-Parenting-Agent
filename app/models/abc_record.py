@@ -11,7 +11,7 @@ class ABCRecord(Base):
     __tablename__ = "abc_records"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    incident_id = Column(UUID(as_uuid=True), ForeignKey("incidents.id"), nullable=False, unique=True, index=True)
+    incident_id = Column(UUID(as_uuid=True), ForeignKey("incidents.id"), nullable=False, index=True)
 
     antecedent = Column(Text, nullable=True)
     behavior = Column(Text, nullable=True)
@@ -19,4 +19,4 @@ class ABCRecord(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    incident = relationship("Incident", back_populates="abc_record")
+    incident = relationship("Incident", back_populates="abc_records")

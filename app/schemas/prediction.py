@@ -40,6 +40,8 @@ class DailyPredictionResponse(BaseModel):
 
     prediction_model_source: Optional[str] = None
     prediction_model_probability: Optional[float] = None
+    prediction_confidence: Optional[float] = None
+    prediction_confidence_note: Optional[str] = None
 
     notification_triggered: bool = False
     notification_message: Optional[str] = None

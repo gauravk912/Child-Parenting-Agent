@@ -1,7 +1,8 @@
+import uuid
+
 from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-import uuid
 
 from app.db.base import Base
 
@@ -26,3 +27,6 @@ class Child(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     parent = relationship("User")
+    incidents = relationship("Incident", back_populates="child", cascade="all, delete-orphan")
+    predictions = relationship("Prediction", back_populates="child", cascade="all, delete-orphan")
+    interventions = relationship("Intervention", cascade="all, delete-orphan")

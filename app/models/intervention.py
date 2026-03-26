@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Column, DateTime, Float, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -11,12 +11,15 @@ class Intervention(Base):
     __tablename__ = "interventions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    incident_id = Column(UUID(as_uuid=True), ForeignKey("incidents.id"), nullable=False, index=True)
+    child_id = Column(UUID(as_uuid=True), ForeignKey("children.id"), nullable=False, index=True)
 
-    name = Column(String, nullable=False)
-    notes = Column(Text, nullable=True)
-    sort_order = Column(Integer, nullable=False, default=0)
+    intervention_name = Column(String, nullable=False, index=True)
+    context_note = Column(Text, nullable=True)
+
+    effectiveness_label = Column(String, nullable=True)
+    effectiveness_score = Column(Float, nullable=True)
+    feedback_note = Column(Text, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    incident = relationship("Incident", back_populates="interventions")
+    child = relationship("Child")

@@ -23,6 +23,13 @@ class CrisisGraphState(TypedDict, total=False):
     classification_confidence: float
     classification_reasoning: Optional[str]
 
+    use_graph_memory: bool
+    use_tavily_evidence: bool
+    use_therapist_notes: bool
+    planning_source: str
+    planning_confidence: float
+    planning_reasoning: Optional[str]
+
     immediate_actions: List[str]
     response_text: str
 
@@ -37,6 +44,11 @@ class CrisisGraphState(TypedDict, total=False):
     ranked_interventions: List[dict]
     recurring_contexts: List[str]
     memory_summary: Optional[str]
+
+    retrieval_confidence: float
+    ranking_confidence: float
+    overall_response_confidence: float
+    confidence_note: Optional[str]
 
     used_child_profile: bool
     used_graph_memory: bool
@@ -76,6 +88,9 @@ class DebriefGraphState(TypedDict, total=False):
     normalization_confidence: float
     normalization_reasoning: Optional[str]
 
+    debrief_overall_confidence: float
+    debrief_confidence_note: Optional[str]
+
     incident_id: UUID
     created_at: datetime
     graph_updated: bool
@@ -111,6 +126,8 @@ class PredictionGraphState(TypedDict, total=False):
 
     prediction_model_source: str
     prediction_model_probability: Optional[float]
+    prediction_confidence: float
+    prediction_confidence_note: Optional[str]
 
     prediction_id: UUID
     created_at: datetime

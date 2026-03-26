@@ -49,7 +49,6 @@ def abc_extractor(state):
         behavior = llm_result.get("behavior")
         consequence = llm_result.get("consequence")
 
-        # Safety fallback if LLM returns too little
         if not antecedent and not behavior and not consequence:
             raise ValueError("LLM extraction returned no usable fields.")
 

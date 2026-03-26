@@ -65,19 +65,43 @@ def memory_normalizer(state):
             location=state.get("location"),
             interventions_tried=state.get("interventions_tried", []),
         )
-        return {
-            **state,
+        norm_source = "llm"
+        norm_conf = normalized.get("confidence", 0.0)
+        norm_reason = normalized.get("reasoning_summary")
+        labels = {
             "trigger_labels": normalized.get("trigger_labels", []),
             "context_labels": normalized.get("context_labels", []),
             "behavior_labels": normalized.get("behavior_labels", []),
             "intervention_labels": normalized.get("intervention_labels", []),
-            "normalization_source": "llm",
-            "normalization_confidence": normalized.get("confidence", 0.0),
-            "normalization_reasoning": normalized.get("reasoning_summary"),
         }
     except Exception:
         fallback = _fallback_labels(state)
-        return {
-            **state,
-            **fallback,
+        norm_source = fallback["normalization_source"]
+        norm_conf = fallback["normalization_confidence"]
+        norm_reason = fallback["normalization_reasoning"]
+        labels = {
+            "trigger_labels": fallback["trigger_labels"],
+            "context_labels": fallback["context_labels"],
+            "behavior_labels": fallback["behavior_labels"],
+            "intervention_labels": fallback["intervention_labels"],
         }
+
+    extraction_conf = state.get("extraction_confidence", 0.0) or 0.0
+    overall_conf = round((0.6 * extraction_conf) + (0.4 * norm_conf), 2)
+
+    if overall_conf >= 0.85:
+        note = "High confidence in both debrief extraction and memory normalization."
+    elif overall_conf >= 0.65:
+        note = "Moderate confidence in debrief interpretation; review if needed."
+    else:
+        note = "Lower confidence in debrief interpretation; parent review may be helpful."
+
+    return {
+        **state,
+        **labels,
+        "normalization_source": norm_source,
+        "normalization_confidence": norm_conf,
+        "normalization_reasoning": norm_reason,
+        "debrief_overall_confidence": overall_conf,
+        "debrief_confidence_note": note,
+    }

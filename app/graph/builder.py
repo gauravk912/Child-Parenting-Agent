@@ -9,6 +9,7 @@ from app.graph.state import (
 
 from app.graph.nodes.context_fetch import context_fetch
 from app.graph.nodes.router import router
+from app.graph.nodes.tool_planner import tool_planner
 from app.graph.nodes.intervention_planner import intervention_planner
 from app.graph.nodes.memory_retrieval import memory_retrieval
 from app.graph.nodes.evidence_search import evidence_search
@@ -32,6 +33,7 @@ def build_crisis_graph():
 
     graph.add_node("context_fetch", context_fetch)
     graph.add_node("router", router)
+    graph.add_node("tool_planner", tool_planner)
     graph.add_node("intervention_planner", intervention_planner)
     graph.add_node("memory_retrieval", memory_retrieval)
     graph.add_node("evidence_search", evidence_search)
@@ -40,7 +42,8 @@ def build_crisis_graph():
 
     graph.add_edge(START, "context_fetch")
     graph.add_edge("context_fetch", "router")
-    graph.add_edge("router", "intervention_planner")
+    graph.add_edge("router", "tool_planner")
+    graph.add_edge("tool_planner", "intervention_planner")
     graph.add_edge("intervention_planner", "memory_retrieval")
     graph.add_edge("memory_retrieval", "evidence_search")
     graph.add_edge("evidence_search", "response_generator")

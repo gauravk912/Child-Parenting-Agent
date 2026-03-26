@@ -55,6 +55,13 @@ def respond_to_crisis(
             classification_source=result.get("classification_source"),
             classification_confidence=result.get("classification_confidence"),
             classification_reasoning=result.get("classification_reasoning"),
+            planning_source=result.get("planning_source"),
+            planning_confidence=result.get("planning_confidence"),
+            planning_reasoning=result.get("planning_reasoning"),
+            retrieval_confidence=result.get("retrieval_confidence"),
+            ranking_confidence=result.get("ranking_confidence"),
+            overall_response_confidence=result.get("overall_response_confidence"),
+            confidence_note=result.get("confidence_note"),
             immediate_actions=result.get("immediate_actions", []),
             response_text=result.get("response_text", ""),
             evidence_sources=[

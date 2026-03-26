@@ -22,6 +22,7 @@ class RankedIntervention(BaseModel):
     intervention: str
     use_count: int
     contextual_score: Optional[float] = None
+    feedback_adjustment: Optional[float] = None
 
 
 class CrisisProvenance(BaseModel):
@@ -50,6 +51,15 @@ class CrisisResponse(BaseModel):
     classification_source: Optional[str] = None
     classification_confidence: Optional[float] = None
     classification_reasoning: Optional[str] = None
+
+    planning_source: Optional[str] = None
+    planning_confidence: Optional[float] = None
+    planning_reasoning: Optional[str] = None
+
+    retrieval_confidence: Optional[float] = None
+    ranking_confidence: Optional[float] = None
+    overall_response_confidence: Optional[float] = None
+    confidence_note: Optional[str] = None
 
     immediate_actions: List[str]
     response_text: str

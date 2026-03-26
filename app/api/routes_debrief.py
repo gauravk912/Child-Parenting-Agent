@@ -62,6 +62,8 @@ def submit_debrief(
             normalization_source=result.get("normalization_source"),
             normalization_confidence=result.get("normalization_confidence"),
             normalization_reasoning=result.get("normalization_reasoning"),
+            debrief_overall_confidence=result.get("debrief_overall_confidence"),
+            debrief_confidence_note=result.get("debrief_confidence_note"),
             interventions_tried=result.get("interventions_tried", []),
             parent_summary=payload.parent_summary,
             transcript_text=payload.transcript_text,

@@ -239,3 +239,57 @@ Interventions tried: {interventions_tried}
         "confidence": float(parsed.get("confidence", 0.0)),
         "reasoning_summary": parsed.get("reasoning_summary", "LLM normalization used."),
     }
+
+
+def plan_crisis_tool_usage(
+    child_name: Optional[str],
+    severity: Optional[str],
+    parent_message: str,
+    sensory_triggers: Optional[str],
+    school_notes: Optional[str],
+) -> Dict[str, Any]:
+    logger.info("Calling OpenAI model=%s for crisis tool planning", settings.openai_model)
+    client = _get_client()
+
+    prompt = f"""
+You are a planning assistant for a crisis support system.
+
+Decide which retrieval sources are worth using for this crisis.
+
+Return ONLY valid JSON:
+{{
+  "use_graph_memory": true or false,
+  "use_tavily_evidence": true or false,
+  "use_therapist_notes": true or false,
+  "confidence": number between 0 and 1,
+  "reasoning_summary": "short explanation"
+}}
+
+Guidance:
+- Graph memory is useful for repeated patterns or known recurring contexts.
+- Therapist notes are useful when child-specific regulation strategies matter.
+- Tavily evidence is useful when external grounding may add value, especially for public/safety/escalation scenarios.
+- Avoid unnecessary tool use for very simple cases.
+
+Child name: {child_name or "unknown"}
+Severity: {severity or "unknown"}
+Known sensory triggers: {sensory_triggers or "unknown"}
+School notes: {school_notes or "unknown"}
+Parent message: {parent_message}
+"""
+
+    response = client.responses.create(
+        model=settings.openai_model,
+        input=prompt,
+    )
+
+    text = getattr(response, "output_text", None)
+    parsed = _extract_json_object(text)
+
+    return {
+        "use_graph_memory": bool(parsed.get("use_graph_memory", True)),
+        "use_tavily_evidence": bool(parsed.get("use_tavily_evidence", False)),
+        "use_therapist_notes": bool(parsed.get("use_therapist_notes", True)),
+        "confidence": float(parsed.get("confidence", 0.0)),
+        "reasoning_summary": parsed.get("reasoning_summary", "LLM planner used."),
+    }

@@ -98,6 +98,8 @@ def generate_daily_prediction(
             engineered_features=result.get("engineered_features", {}),
             prediction_model_source=result.get("prediction_model_source"),
             prediction_model_probability=result.get("prediction_model_probability"),
+            prediction_confidence=result.get("prediction_confidence"),
+            prediction_confidence_note=result.get("prediction_confidence_note"),
             notification_triggered=notification_triggered,
             notification_message=notification_message,
             provenance=PredictionProvenance(

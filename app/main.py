@@ -9,6 +9,9 @@ from app.api.routes_reports import router as reports_router
 from app.api.routes_uploads import router as uploads_router
 from app.api.routes_notifications import router as notifications_router
 from app.api.routes_auth import router as auth_router
+from app.api.routes_analytics import router as analytics_router
+from app.api.routes_timeline import router as timeline_router
+from app.api.routes_feedback import router as feedback_router
 
 from app.core.config import settings
 from app.core.constants import APP_VERSION
@@ -31,6 +34,9 @@ app.include_router(prediction_router)
 app.include_router(reports_router)
 app.include_router(uploads_router)
 app.include_router(notifications_router)
+app.include_router(analytics_router)
+app.include_router(timeline_router)
+app.include_router(feedback_router)
 
 
 @app.get("/")

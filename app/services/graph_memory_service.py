@@ -2,7 +2,12 @@ from collections import Counter, defaultdict
 from typing import List, Dict, Optional
 from uuid import UUID
 
+from sqlalchemy.orm import Session
+
 from app.db.neo4j import get_neo4j_driver
+from app.db.session import SessionLocal
+from app.models.intervention import Intervention
+from app.services.dedupe_service import normalize_text, dedupe_strings
 
 
 def create_child_profile_node(
@@ -144,7 +149,7 @@ def create_incident_memory_node(
 
 def get_similar_incidents_for_child(
     child_id: UUID,
-    limit: int = 8,
+    limit: int = 12,
 ) -> List[Dict]:
     driver = get_neo4j_driver()
 
@@ -153,6 +158,7 @@ def get_similar_incidents_for_child(
     OPTIONAL MATCH (i)-[:USED_INTERVENTION]->(iv:Intervention)
     OPTIONAL MATCH (i)-[:HAS_CONTEXT_TAG]->(ct:ContextTag)
     OPTIONAL MATCH (i)-[:HAS_TRIGGER_TAG]->(tt:TriggerTag)
+    OPTIONAL MATCH (i)-[:HAS_BEHAVIOR_TAG]->(bt:BehaviorTag)
     RETURN
         i.id AS incident_id,
         i.antecedent AS antecedent,
@@ -161,7 +167,8 @@ def get_similar_incidents_for_child(
         i.location AS location,
         collect(DISTINCT iv.name) AS interventions,
         collect(DISTINCT ct.name) AS context_tags,
-        collect(DISTINCT tt.name) AS trigger_tags
+        collect(DISTINCT tt.name) AS trigger_tags,
+        collect(DISTINCT bt.name) AS behavior_tags
     LIMIT $limit
     """
 
@@ -176,9 +183,10 @@ def get_similar_incidents_for_child(
                     "behavior": record.get("behavior"),
                     "consequence": record.get("consequence"),
                     "location": record.get("location"),
-                    "interventions": [x for x in (record.get("interventions") or []) if x],
-                    "context_tags": [x for x in (record.get("context_tags") or []) if x],
-                    "trigger_tags": [x for x in (record.get("trigger_tags") or []) if x],
+                    "interventions": dedupe_strings(record.get("interventions") or []),
+                    "context_tags": dedupe_strings(record.get("context_tags") or []),
+                    "trigger_tags": dedupe_strings(record.get("trigger_tags") or []),
+                    "behavior_tags": dedupe_strings(record.get("behavior_tags") or []),
                 }
             )
 
@@ -208,7 +216,7 @@ def get_prior_helpful_interventions_for_child(
                 interventions.append(name)
 
     driver.close()
-    return interventions
+    return dedupe_strings(interventions, max_items=limit)
 
 
 def _infer_current_context_labels(parent_message: str) -> List[str]:
@@ -230,7 +238,38 @@ def _infer_current_context_labels(parent_message: str) -> List[str]:
     if "scream" in msg or "yell" in msg:
         labels.append("screaming")
 
-    return labels
+    return dedupe_strings(labels)
+
+
+def _get_feedback_boosts(child_id: UUID) -> Dict[str, float]:
+    db: Session = SessionLocal()
+    try:
+        rows = db.query(Intervention).filter(Intervention.child_id == child_id).all()
+
+        boosts = defaultdict(float)
+        counts = defaultdict(int)
+
+        for row in rows:
+            name = normalize_text(row.intervention_name)
+            if not name:
+                continue
+
+            counts[name] += 1
+            score = row.effectiveness_score if row.effectiveness_score is not None else 0.0
+
+            if score >= 1.0:
+                boosts[name] += 3.0
+            elif score >= 0.5:
+                boosts[name] += 1.0
+            else:
+                boosts[name] -= 2.0
+
+        for name, count in counts.items():
+            boosts[name] += min(1.5, 0.25 * count)
+
+        return dict(boosts)
+    finally:
+        db.close()
 
 
 def get_ranked_interventions_for_child(
@@ -259,6 +298,7 @@ def get_ranked_interventions_for_child(
     current_labels = set(_infer_current_context_labels(parent_message or ""))
     intervention_scores = defaultdict(float)
     intervention_counts = defaultdict(int)
+    feedback_boosts = _get_feedback_boosts(child_id)
 
     with driver.session() as session:
         result = session.run(query, child_id=str(child_id))
@@ -268,9 +308,9 @@ def get_ranked_interventions_for_child(
             location = (record.get("location") or "").lower()
             antecedent = (record.get("antecedent") or "").lower()
 
-            incident_labels = set([x for x in (record.get("context_tags") or []) if x])
-            incident_labels.update([x for x in (record.get("trigger_tags") or []) if x])
-            incident_labels.update([x for x in (record.get("behavior_tags") or []) if x])
+            incident_labels = set(dedupe_strings(record.get("context_tags") or []))
+            incident_labels.update(dedupe_strings(record.get("trigger_tags") or []))
+            incident_labels.update(dedupe_strings(record.get("behavior_tags") or []))
 
             match_count = len(current_labels.intersection(incident_labels))
 
@@ -286,8 +326,9 @@ def get_ranked_interventions_for_child(
 
             base_score = 1.0 + (2.5 * match_count) + (1.5 * location_match) + (1.5 * antecedent_match)
 
-            for intervention in interventions:
-                intervention_scores[intervention] += base_score
+            for intervention in dedupe_strings(interventions):
+                key = normalize_text(intervention)
+                intervention_scores[intervention] += base_score + feedback_boosts.get(key, 0.0)
                 intervention_counts[intervention] += 1
 
     driver.close()
@@ -299,10 +340,14 @@ def get_ranked_interventions_for_child(
                 "intervention": intervention,
                 "use_count": intervention_counts[intervention],
                 "contextual_score": round(score, 2),
+                "feedback_adjustment": round(feedback_boosts.get(normalize_text(intervention), 0.0), 2),
             }
         )
 
-    ranked.sort(key=lambda x: (x["contextual_score"], x["use_count"], x["intervention"]), reverse=True)
+    ranked.sort(
+        key=lambda x: (x["contextual_score"], x["use_count"], x["intervention"]),
+        reverse=True
+    )
 
     final = []
     for idx, item in enumerate(ranked[:limit], start=1):
@@ -312,6 +357,7 @@ def get_ranked_interventions_for_child(
                 "intervention": item["intervention"],
                 "use_count": item["use_count"],
                 "contextual_score": item["contextual_score"],
+                "feedback_adjustment": item["feedback_adjustment"],
             }
         )
 
@@ -320,7 +366,7 @@ def get_ranked_interventions_for_child(
 
 def get_recurring_contexts_for_child(
     child_id: UUID,
-    limit: int = 5,
+    limit: int = 8,
 ) -> List[str]:
     driver = get_neo4j_driver()
     counter = Counter()
@@ -341,29 +387,37 @@ def get_recurring_contexts_for_child(
         for record in result:
             for item in record.get("context_tags") or []:
                 if item:
-                    counter[item] += 1
+                    counter[normalize_text(item)] += 1
             for item in record.get("trigger_tags") or []:
                 if item:
-                    counter[item] += 1
+                    counter[normalize_text(item)] += 1
 
-            location = (record.get("location") or "").strip()
-            antecedent = (record.get("antecedent") or "").strip()
+            location = normalize_text(record.get("location"))
+            antecedent = normalize_text(record.get("antecedent"))
 
             if location:
-                counter[f"Location: {location}"] += 1
+                counter[f"location: {location}"] += 1
 
-            lowered = antecedent.lower()
-            if "after school" in lowered:
-                counter["After school transition"] += 1
-            if "crowded" in lowered:
-                counter["Crowded environment"] += 1
-            if "store" in lowered:
-                counter["Store/errand outing"] += 1
-            if "loud" in lowered:
-                counter["Loud environment"] += 1
+            if "after school" in antecedent:
+                counter["after school transition"] += 1
+            if "crowded" in antecedent:
+                counter["crowded environment"] += 1
+            if "store" in antecedent or "grocery" in antecedent:
+                counter["store outing"] += 1
+            if "loud" in antecedent or "noise" in antecedent:
+                counter["loud environment"] += 1
 
     driver.close()
-    return [name for name, _ in counter.most_common(limit)]
+
+    pretty = []
+    for name, _ in counter.most_common(limit * 2):
+        if name.startswith("location: "):
+            suffix = name.split(":", 1)[1].strip()
+            pretty.append(f"Location: {suffix}")
+        else:
+            pretty.append(name[:1].upper() + name[1:])
+
+    return dedupe_strings(pretty, max_items=limit)
 
 
 def build_memory_summary(

@@ -1,44 +1,64 @@
-from typing import List, Dict
 import logging
+from typing import List, Dict
 
-from tavily import TavilyClient
+import requests
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-def search_parenting_evidence(query: str, max_results: int = 3) -> List[Dict]:
+def search_support_evidence(query: str, max_results: int = 3) -> List[Dict]:
+    """
+    Returns a list like:
+    [
+      {
+        "title": "...",
+        "url": "...",
+        "snippet": "..."
+      }
+    ]
+    """
     if not settings.enable_live_evidence_search:
-        logger.info("Tavily evidence search skipped because enable_live_evidence_search is false")
+        logger.info("Tavily search disabled by config.")
         return []
 
     if not settings.tavily_api_key:
-        logger.info("Tavily evidence search skipped because TAVILY_API_KEY is missing")
+        logger.warning("TAVILY_API_KEY missing. Returning no evidence.")
         return []
 
-    logger.info("Running Tavily evidence search")
+    try:
+        logger.info("Calling Tavily search for query=%s", query)
 
-    client = TavilyClient(api_key=settings.tavily_api_key)
-
-    response = client.search(
-        query=query,
-        max_results=max_results,
-        search_depth="basic",
-        include_answer=False,
-    )
-
-    results = response.get("results", [])
-
-    cleaned = []
-    for item in results:
-        cleaned.append(
-            {
-                "title": item.get("title", "Untitled Source"),
-                "url": item.get("url", ""),
-                "snippet": item.get("content", "")[:400],
-            }
+        response = requests.post(
+            "https://api.tavily.com/search",
+            json={
+                "api_key": settings.tavily_api_key,
+                "query": query,
+                "search_depth": "basic",
+                "max_results": max_results,
+                "include_answer": False,
+                "include_raw_content": False,
+            },
+            timeout=20,
         )
+        response.raise_for_status()
 
-    logger.info("Tavily evidence search returned %s results", len(cleaned))
-    return cleaned
+        data = response.json()
+        results = data.get("results", []) or []
+
+        cleaned = []
+        for item in results[:max_results]:
+            cleaned.append(
+                {
+                    "title": item.get("title", "Untitled"),
+                    "url": item.get("url", ""),
+                    "snippet": item.get("content", "")[:500],
+                }
+            )
+
+        return cleaned
+
+    except Exception as e:
+        logger.exception("Tavily search failed: %s", str(e))
+        return []

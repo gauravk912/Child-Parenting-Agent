@@ -30,7 +30,6 @@ def _compute_rule_based_score(engineered_features: dict) -> float:
     if engineered_features["has_routine_anchor"]:
         risk_score -= 0.03
 
-    # recent incident history should matter
     risk_score += min(0.12, 0.02 * engineered_features["recent_incident_count_7d"])
     risk_score += min(0.08, 0.02 * engineered_features["recent_incident_count_3d"])
 
@@ -43,6 +42,53 @@ def _derive_risk_level(score: float) -> str:
     elif score >= 0.45:
         return "moderate"
     return "low"
+
+
+def _build_prediction_confidence(
+    model_source: str,
+    ml_probability,
+    rule_score: float,
+    engineered_features: dict,
+    weather_summary,
+    calendar_summary,
+):
+    confidence = 0.45
+
+    if engineered_features["recent_incident_count_7d"] > 0:
+        confidence += 0.10
+    if engineered_features["weather_risk_count"] > 0:
+        confidence += 0.10
+    if engineered_features["calendar_risk_count"] > 0:
+        confidence += 0.15
+    if engineered_features["is_transition_heavy_day"]:
+        confidence += 0.05
+    if engineered_features["has_outing_risk"]:
+        confidence += 0.05
+
+    if model_source == "ml_model":
+        confidence += 0.10
+        if ml_probability is not None:
+            distance = abs(float(ml_probability) - 0.50)
+            if distance >= 0.25:
+                confidence += 0.05
+    else:
+        confidence += 0.05
+
+    if weather_summary:
+        confidence += 0.05
+    if calendar_summary:
+        confidence += 0.05
+
+    confidence = min(round(confidence, 2), 0.95)
+
+    if confidence >= 0.85:
+        note = "High confidence because child history, live context, and prediction signals are all available."
+    elif confidence >= 0.65:
+        note = "Moderate confidence because prediction used a mix of recent history and available daily context."
+    else:
+        note = "Lower confidence because some context signals are limited or uncertain."
+
+    return confidence, note
 
 
 def risk_model(state):
@@ -112,13 +158,8 @@ def risk_model(state):
         if ml_probability is not None:
             prediction_model_probability = float(ml_probability)
 
-            # Hybrid blend:
-            # - lean on rule score more because data is still small
-            # - use ML as a signal, not as sole truth
             blended_score = round((0.65 * rule_score) + (0.35 * float(ml_probability)), 2)
 
-            # Guardrail: if rule score says clear moderate/high risk,
-            # do not let ML collapse it unrealistically.
             if rule_score >= 0.65 and blended_score < 0.45:
                 final_score = max(0.45, round((rule_score + blended_score) / 2, 2))
             elif rule_score >= 0.45 and blended_score < 0.30:
@@ -130,6 +171,15 @@ def risk_model(state):
 
         risk_score = max(0.0, min(round(final_score, 2), 1.0))
         risk_level = _derive_risk_level(risk_score)
+
+        prediction_confidence, prediction_confidence_note = _build_prediction_confidence(
+            model_source=prediction_model_source,
+            ml_probability=prediction_model_probability,
+            rule_score=rule_score,
+            engineered_features=engineered_features,
+            weather_summary=weather.get("summary"),
+            calendar_summary=calendar.get("summary"),
+        )
 
         risk_factors = []
         if child.sensory_triggers:
@@ -168,6 +218,8 @@ def risk_model(state):
             "engineered_features": engineered_features,
             "prediction_model_source": prediction_model_source,
             "prediction_model_probability": prediction_model_probability,
+            "prediction_confidence": prediction_confidence,
+            "prediction_confidence_note": prediction_confidence_note,
         }
     finally:
         db.close()
