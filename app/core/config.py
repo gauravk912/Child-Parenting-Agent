@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-5.4-mini"
     openai_embedding_model: str = "text-embedding-3-small"
+    
     tavily_api_key: str = ""
     enable_live_evidence_search: bool = True
 
@@ -51,9 +52,11 @@ class Settings(BaseSettings):
     enable_mcp_calendar_adapter: bool = True
     
     local_vector_store_file: str = "data/processed/vector_store.json"
-    
     local_notification_store_file: str = "data/processed/notifications.json"
     notification_high_risk_threshold: float = 0.75
+    
+    local_prediction_model_file: str = "data/models/prediction_model.joblib"
+    local_prediction_feature_file: str = "data/models/prediction_features.json"
     
     model_config = SettingsConfigDict(
         env_file=".env",

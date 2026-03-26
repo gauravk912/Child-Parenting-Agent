@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, get_current_user
 from app.models.child import Child
-from app.models.user import User
 from app.services.notification_service import get_notifications_for_child
 
 logger = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 def list_child_notifications(
     child_id: UUID,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     child = (
         db.query(Child)

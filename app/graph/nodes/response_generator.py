@@ -34,11 +34,11 @@ def response_generator(state):
             "response_text": response_text,
             "therapist_note_snippets": therapist_note_snippets,
             "used_child_profile": True,
-            "used_graph_memory": bool(prior_helpful_interventions or recurring_contexts or (memory_summary and memory_summary != 'No prior incident memory available.')),
+            "used_graph_memory": bool(prior_helpful_interventions or recurring_contexts or (memory_summary and memory_summary != "No prior incident memory available.")),
             "used_tavily_evidence": bool(evidence_sources),
             "used_therapist_notes": bool(therapist_note_snippets),
             "used_llm_generation": False,
-            "provenance_summary": "Used child profile, deterministic emergency response, and safety-first logic.",
+            "provenance_summary": "Used child profile, graph memory, therapist notes, and deterministic emergency response.",
         }
 
     evidence_block = "\n".join(
@@ -84,8 +84,13 @@ Child name: {child_name}
 Known sensory triggers: {triggers}
 Known calming strategies: {calming}
 
-CURRENT INCIDENT
+CLASSIFICATION
 Severity: {severity}
+Classification source: {state.get("classification_source")}
+Classification confidence: {state.get("classification_confidence")}
+Classification reasoning: {state.get("classification_reasoning")}
+
+CURRENT INCIDENT
 Parent message: {parent_message}
 
 IMMEDIATE ACTIONS ALREADY PLANNED

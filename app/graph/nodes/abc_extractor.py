@@ -1,10 +1,7 @@
-def abc_extractor(state):
-    raw_text = state.get("raw_text", "").strip()
-    parent_summary = state.get("parent_summary", "").strip()
+from app.services.llm_service import extract_debrief_structured
 
-    text = raw_text if raw_text else parent_summary
-    lowered = text.lower()
 
+def _heuristic_extract(state, text: str, parent_summary: str):
     antecedent = None
     behavior = None
     consequence = None
@@ -35,6 +32,36 @@ def abc_extractor(state):
 
     if consequence is None:
         consequence = state.get("outcome_notes") or None
+
+    return antecedent, behavior, consequence
+
+
+def abc_extractor(state):
+    raw_text = state.get("raw_text", "").strip()
+    parent_summary = state.get("parent_summary", "").strip()
+
+    text = raw_text if raw_text else parent_summary
+
+    try:
+        llm_result = extract_debrief_structured(text)
+
+        antecedent = llm_result.get("antecedent")
+        behavior = llm_result.get("behavior")
+        consequence = llm_result.get("consequence")
+
+        # Safety fallback if LLM returns too little
+        if not antecedent and not behavior and not consequence:
+            raise ValueError("LLM extraction returned no usable fields.")
+
+        extraction_source = "llm"
+        extraction_confidence = llm_result.get("confidence", 0.0)
+        extraction_reasoning = llm_result.get("reasoning_summary")
+
+    except Exception:
+        antecedent, behavior, consequence = _heuristic_extract(state, text, parent_summary)
+        extraction_source = "heuristic_fallback"
+        extraction_confidence = 0.5
+        extraction_reasoning = "Rule-based heuristic fallback used."
 
     missing_fields = []
     if not antecedent:
@@ -71,4 +98,7 @@ def abc_extractor(state):
         "missing_fields": missing_fields,
         "follow_up_question": follow_up_question,
         "debrief_quality": debrief_quality,
+        "extraction_source": extraction_source,
+        "extraction_confidence": extraction_confidence,
+        "extraction_reasoning": extraction_reasoning,
     }

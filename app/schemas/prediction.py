@@ -10,20 +10,15 @@ class PredictionProvenance(BaseModel):
     used_weather_tool: bool = False
     used_calendar_tool: bool = False
     used_feature_engineering: bool = False
+    used_ml_model: bool = False
     used_rule_based_risk_engine: bool = False
     provenance_summary: Optional[str] = None
 
 
 class DailyPredictionRequest(BaseModel):
     child_id: UUID
-    prediction_date: Optional[str] = Field(
-        default=None,
-        description="Optional date in YYYY-MM-DD format. If omitted, server uses today."
-    )
-    location_query: Optional[str] = Field(
-        default=None,
-        description="Optional location like 'Columbus,OH,US'. Falls back to default env location."
-    )
+    prediction_date: Optional[str] = Field(default=None)
+    location_query: Optional[str] = Field(default=None)
 
 
 class DailyPredictionResponse(BaseModel):
@@ -42,6 +37,9 @@ class DailyPredictionResponse(BaseModel):
     prevention_steps: List[str] = Field(default_factory=list)
 
     engineered_features: Dict[str, Any] = Field(default_factory=dict)
+
+    prediction_model_source: Optional[str] = None
+    prediction_model_probability: Optional[float] = None
 
     notification_triggered: bool = False
     notification_message: Optional[str] = None

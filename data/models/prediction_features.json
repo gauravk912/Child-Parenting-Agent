@@ -1,0 +1,13 @@
+[
+  "has_sensory_trigger_profile",
+  "has_calming_strategies",
+  "has_school_risk_context",
+  "has_medical_context",
+  "recent_incident_count_7d",
+  "recent_incident_count_3d",
+  "calendar_risk_count",
+  "is_transition_heavy_day",
+  "has_appointment_day",
+  "has_outing_risk",
+  "has_routine_anchor"
+]

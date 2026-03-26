@@ -1,4 +1,4 @@
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import START, END, StateGraph
 
 from app.graph.state import (
     CrisisGraphState,
@@ -17,6 +17,7 @@ from app.graph.nodes.safety_guard import safety_guard
 
 from app.graph.nodes.transcribe_audio import transcribe_audio
 from app.graph.nodes.abc_extractor import abc_extractor
+from app.graph.nodes.memory_normalizer import memory_normalizer
 from app.graph.nodes.sql_persist import sql_persist
 from app.graph.nodes.graph_updater import graph_updater
 
@@ -54,12 +55,14 @@ def build_debrief_graph():
 
     graph.add_node("transcribe_audio", transcribe_audio)
     graph.add_node("abc_extractor", abc_extractor)
+    graph.add_node("memory_normalizer", memory_normalizer)
     graph.add_node("sql_persist", sql_persist)
     graph.add_node("graph_updater", graph_updater)
 
     graph.add_edge(START, "transcribe_audio")
     graph.add_edge("transcribe_audio", "abc_extractor")
-    graph.add_edge("abc_extractor", "sql_persist")
+    graph.add_edge("abc_extractor", "memory_normalizer")
+    graph.add_edge("memory_normalizer", "sql_persist")
     graph.add_edge("sql_persist", "graph_updater")
     graph.add_edge("graph_updater", END)
 

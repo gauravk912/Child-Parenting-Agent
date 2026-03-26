@@ -9,7 +9,6 @@ from app.core.dependencies import get_db, get_current_user
 from app.db.session import SessionLocal
 from app.graph.builder import build_prediction_graph
 from app.models.child import Child
-from app.models.user import User
 from app.schemas.prediction import (
     DailyPredictionRequest,
     DailyPredictionResponse,
@@ -32,7 +31,7 @@ prediction_graph = build_prediction_graph()
 def generate_daily_prediction(
     payload: DailyPredictionRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     logger.info("Prediction request received for child_id=%s", payload.child_id)
 
@@ -83,11 +82,7 @@ def generate_daily_prediction(
             notification_triggered = True
             notification_message = notification["message"]
 
-        logger.info(
-            "Prediction generated successfully for child_id=%s prediction_id=%s",
-            payload.child_id,
-            prediction.id,
-        )
+        used_ml_model = result.get("prediction_model_source") == "ml_model"
 
         return DailyPredictionResponse(
             prediction_id=prediction.id,
@@ -101,6 +96,8 @@ def generate_daily_prediction(
             risk_factors=result.get("risk_factors", []),
             prevention_steps=result.get("prevention_steps", []),
             engineered_features=result.get("engineered_features", {}),
+            prediction_model_source=result.get("prediction_model_source"),
+            prediction_model_probability=result.get("prediction_model_probability"),
             notification_triggered=notification_triggered,
             notification_message=notification_message,
             provenance=PredictionProvenance(
@@ -108,8 +105,13 @@ def generate_daily_prediction(
                 used_weather_tool=True,
                 used_calendar_tool=True,
                 used_feature_engineering=True,
-                used_rule_based_risk_engine=True,
-                provenance_summary="Used child profile, weather tool, calendar tool, engineered features, and rule-based risk engine.",
+                used_ml_model=used_ml_model,
+                used_rule_based_risk_engine=not used_ml_model,
+                provenance_summary=(
+                    "Used child profile, weather tool, calendar tool, feature engineering, and ML prediction model."
+                    if used_ml_model
+                    else "Used child profile, weather tool, calendar tool, feature engineering, and rule-based fallback risk engine."
+                ),
             ),
             created_at=prediction.created_at,
         )

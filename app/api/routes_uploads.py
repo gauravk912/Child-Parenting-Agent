@@ -6,9 +6,8 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_current_user
 from app.models.child import Child
 from app.models.document import Document
-from app.models.user import User
 from app.retrieval.ingest_docs import ingest_document_for_retrieval
-from app.schemas.documet import TherapistNoteCreateRequest, TherapistNoteResponse
+from app.schemas.document import TherapistNoteCreateRequest, TherapistNoteResponse
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ router = APIRouter(prefix="/uploads", tags=["uploads"])
 def upload_therapist_note(
     payload: TherapistNoteCreateRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     logger.info("Therapist note upload received for child_id=%s", payload.child_id)
 
@@ -45,20 +44,13 @@ def upload_therapist_note(
     ingest_result = ingest_document_for_retrieval(
         document_id=document.id,
         child_id=payload.child_id,
-        title=payload.title,
-        raw_text=payload.text,
+        title=document.title,
+        raw_text=document.raw_text,
     )
 
     document.embedding_doc_id = ingest_result["embedding_doc_id"]
     db.commit()
     db.refresh(document)
-
-    logger.info(
-        "Therapist note ingested successfully for child_id=%s document_id=%s chunks=%s",
-        payload.child_id,
-        document.id,
-        ingest_result["chunk_count"],
-    )
 
     return TherapistNoteResponse(
         document_id=document.id,

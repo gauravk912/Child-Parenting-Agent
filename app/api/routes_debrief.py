@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_current_user
 from app.graph.builder import build_debrief_graph
 from app.models.child import Child
-from app.models.user import User
 from app.schemas.debrief import DebriefRequest, DebriefResponse
 
 logger = logging.getLogger(__name__)
@@ -21,7 +20,7 @@ debrief_graph = build_debrief_graph()
 def submit_debrief(
     payload: DebriefRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     logger.info("Debrief request received for child_id=%s", payload.child_id)
 
@@ -46,12 +45,6 @@ def submit_debrief(
             }
         )
 
-        logger.info(
-            "Debrief processed successfully for child_id=%s incident_id=%s",
-            payload.child_id,
-            result.get("incident_id"),
-        )
-
         return DebriefResponse(
             incident_id=result["incident_id"],
             child_id=payload.child_id,
@@ -59,6 +52,16 @@ def submit_debrief(
             antecedent=result.get("antecedent"),
             behavior=result.get("behavior"),
             consequence=result.get("consequence"),
+            extraction_source=result.get("extraction_source"),
+            extraction_confidence=result.get("extraction_confidence"),
+            extraction_reasoning=result.get("extraction_reasoning"),
+            trigger_labels=result.get("trigger_labels", []),
+            context_labels=result.get("context_labels", []),
+            behavior_labels=result.get("behavior_labels", []),
+            intervention_labels=result.get("intervention_labels", []),
+            normalization_source=result.get("normalization_source"),
+            normalization_confidence=result.get("normalization_confidence"),
+            normalization_reasoning=result.get("normalization_reasoning"),
             interventions_tried=result.get("interventions_tried", []),
             parent_summary=payload.parent_summary,
             transcript_text=payload.transcript_text,

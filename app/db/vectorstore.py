@@ -51,7 +51,6 @@ def search_vector_store(
     top_k: int = 3,
 ) -> List[Dict[str, Any]]:
     records = load_vector_store()
-
     filtered = [r for r in records if r.get("child_id") == child_id]
 
     scored = []

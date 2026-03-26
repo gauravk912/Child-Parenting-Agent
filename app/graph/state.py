@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import List, Optional, TypedDict
+from typing import List, Optional
 from uuid import UUID
+from typing_extensions import TypedDict
 
 
 class CrisisGraphState(TypedDict, total=False):
@@ -18,6 +19,10 @@ class CrisisGraphState(TypedDict, total=False):
     severity: str
     needs_emergency_support: bool
 
+    classification_source: str
+    classification_confidence: float
+    classification_reasoning: Optional[str]
+
     immediate_actions: List[str]
     response_text: str
 
@@ -25,13 +30,13 @@ class CrisisGraphState(TypedDict, total=False):
     evidence_sources: List[dict]
     evidence_summary: Optional[str]
 
+    therapist_note_snippets: List[dict]
+
     similar_incidents: List[dict]
     prior_helpful_interventions: List[str]
     ranked_interventions: List[dict]
     recurring_contexts: List[str]
     memory_summary: Optional[str]
-
-    therapist_note_snippets: List[dict]
 
     used_child_profile: bool
     used_graph_memory: bool
@@ -58,6 +63,18 @@ class DebriefGraphState(TypedDict, total=False):
     antecedent: Optional[str]
     behavior: Optional[str]
     consequence: Optional[str]
+
+    extraction_source: str
+    extraction_confidence: float
+    extraction_reasoning: Optional[str]
+
+    trigger_labels: List[str]
+    context_labels: List[str]
+    behavior_labels: List[str]
+    intervention_labels: List[str]
+    normalization_source: str
+    normalization_confidence: float
+    normalization_reasoning: Optional[str]
 
     incident_id: UUID
     created_at: datetime
@@ -91,6 +108,9 @@ class PredictionGraphState(TypedDict, total=False):
     prevention_steps: List[str]
 
     engineered_features: dict
+
+    prediction_model_source: str
+    prediction_model_probability: Optional[float]
 
     prediction_id: UUID
     created_at: datetime

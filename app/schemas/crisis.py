@@ -21,6 +21,7 @@ class RankedIntervention(BaseModel):
     rank: int
     intervention: str
     use_count: int
+    contextual_score: Optional[float] = None
 
 
 class CrisisProvenance(BaseModel):
@@ -35,26 +36,30 @@ class CrisisProvenance(BaseModel):
 
 class CrisisRequest(BaseModel):
     child_id: UUID
-    parent_message: str = Field(
-        ...,
-        min_length=3,
-        max_length=2000,
-        description="Live message from parent during a tantrum or crisis"
-    )
+    parent_message: str = Field(..., min_length=3, max_length=2000)
 
 
 class CrisisResponse(BaseModel):
     child_id: UUID
     child_name: Optional[str] = None
+
     route: str
     severity: str
     needs_emergency_support: bool
+
+    classification_source: Optional[str] = None
+    classification_confidence: Optional[float] = None
+    classification_reasoning: Optional[str] = None
+
     immediate_actions: List[str]
     response_text: str
+
     evidence_sources: List[CrisisEvidenceSource] = Field(default_factory=list)
     therapist_note_snippets: List[CrisisTherapistSnippet] = Field(default_factory=list)
+
     memory_summary: Optional[str] = None
     recurring_contexts: List[str] = Field(default_factory=list)
     prior_helpful_interventions: List[str] = Field(default_factory=list)
     ranked_interventions: List[RankedIntervention] = Field(default_factory=list)
+
     provenance: CrisisProvenance

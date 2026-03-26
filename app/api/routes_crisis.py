@@ -1,4 +1,3 @@
-from uuid import UUID
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,14 +6,13 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_current_user
 from app.graph.builder import build_crisis_graph
 from app.models.child import Child
-from app.models.user import User
 from app.schemas.crisis import (
     CrisisRequest,
     CrisisResponse,
     CrisisEvidenceSource,
-    CrisisProvenance,
     CrisisTherapistSnippet,
     RankedIntervention,
+    CrisisProvenance,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,7 +26,7 @@ crisis_graph = build_crisis_graph()
 def respond_to_crisis(
     payload: CrisisRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     logger.info("Crisis request received for child_id=%s", payload.child_id)
 
@@ -48,14 +46,15 @@ def respond_to_crisis(
             }
         )
 
-        logger.info("Crisis response generated successfully for child_id=%s", payload.child_id)
-
         return CrisisResponse(
             child_id=payload.child_id,
             child_name=result.get("child_name"),
             route=result.get("route", "crisis"),
             severity=result.get("severity", "moderate"),
             needs_emergency_support=result.get("needs_emergency_support", False),
+            classification_source=result.get("classification_source"),
+            classification_confidence=result.get("classification_confidence"),
+            classification_reasoning=result.get("classification_reasoning"),
             immediate_actions=result.get("immediate_actions", []),
             response_text=result.get("response_text", ""),
             evidence_sources=[
